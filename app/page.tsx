@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAccount } from "wagmi";
 import type { Job, Settlement, Verdict } from "@/lib/types";
 
 interface Health {
@@ -14,17 +15,20 @@ const EXAMPLE = {
   spec: "Deliver responsive hero section with headline, subheadline, and a working call-to-action button. Must include mobile layout and accessible alt text for images.",
   budget: "500",
   freelancer: "0xF1eeLancer000000000000000000000000000abc",
-  client: "0xC11e0000000000000000000000000000000000de",
 };
 
+function short(addr: string) {
+  return addr.slice(0, 6) + "…" + addr.slice(-4);
+}
+
 export default function Home() {
+  const { address, isConnected } = useAccount();
   const [health, setHealth] = useState<Health | null>(null);
   const [form, setForm] = useState({
     title: "",
     spec: "",
     budget: "",
     freelancer: "",
-    client: "",
   });
   const [deliverable, setDeliverable] = useState("");
   const [job, setJob] = useState<Job | null>(null);
@@ -51,6 +55,10 @@ export default function Home() {
   async function openEscrow(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!isConnected || !address) {
+      setError("Connect your wallet (top right) to create a job.");
+      return;
+    }
     const budgetUsdc = Number(form.budget);
     if (!form.title || !form.spec || !budgetUsdc) {
       setError("Title, acceptance criteria and a budget are required.");
@@ -71,7 +79,7 @@ export default function Home() {
         title: form.title,
         spec: form.spec,
         budgetUsdc,
-        client: form.client || "client",
+        client: address,
         freelancer: form.freelancer || "freelancer",
         status: "funded",
         escrowId: data.escrowId,
@@ -100,11 +108,7 @@ export default function Home() {
       const aRes = await fetch("/api/adjudicate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          jobId: job.id,
-          spec: job.spec,
-          deliverable,
-        }),
+        body: JSON.stringify({ jobId: job.id, spec: job.spec, deliverable }),
       });
       const aData = await aRes.json();
       if (!aRes.ok) throw new Error(aData.error ?? "Adjudication failed.");
@@ -144,12 +148,12 @@ export default function Home() {
   return (
     <div className="wrap">
       <header className="hero">
-        <h1>GenLayer × Arc — Agent Kit</h1>
+        <h1>Post a job. AI settles it.</h1>
         <p>
-          A freelance-escrow agent. <strong>Arc</strong> locks the budget in
-          USDC, <strong>GenLayer</strong> adjudicates whether the deliverable
-          meets the natural-language spec, and Arc settles the result — release
-          to the freelancer or refund the client, minus a platform fee.
+          <strong>Arc</strong> locks the budget in USDC, <strong>GenLayer</strong>{" "}
+          adjudicates whether the deliverable meets your plain-language spec, and
+          Arc settles the result — pay the freelancer or refund you, minus a
+          platform fee.
         </p>
         <div className="legend">
           <span>
@@ -161,8 +165,8 @@ export default function Home() {
             USDC rails
           </span>
           <span>
-            <i className="dot" style={{ background: "var(--hub)" }} /> Vercel —
-            orchestrator
+            <i className="dot" style={{ background: "var(--hub)" }} /> Your wallet
+            — the client
           </span>
         </div>
       </header>
@@ -187,7 +191,7 @@ export default function Home() {
             <span>Platform fee: {(health.feeBps / 100).toFixed(2)}%</span>
             {health.adjudicator === "mock" && (
               <span style={{ marginLeft: "auto" }}>
-                Running simulated — set live mode in .env to use real chains.
+                Simulated settlement — wallet is live; see README to wire chains.
               </span>
             )}
           </>
@@ -202,6 +206,18 @@ export default function Home() {
           <h2>
             <span className="badge arc">Arc</span> Create &amp; fund job
           </h2>
+
+          <div className="acting">
+            {isConnected && address ? (
+              <>
+                Acting as client{" "}
+                <span className="mono">{short(address)}</span>
+              </>
+            ) : (
+              <>Connect your wallet to post a job as the client.</>
+            )}
+          </div>
+
           <form onSubmit={openEscrow}>
             <label>Job title</label>
             <input
@@ -247,8 +263,16 @@ export default function Home() {
             <div className="btn-row">
               {!job ? (
                 <>
-                  <button className="btn-arc" type="submit" disabled={busy === "open"}>
-                    {busy === "open" ? "Funding escrow…" : "Create & fund escrow"}
+                  <button
+                    className="btn-arc"
+                    type="submit"
+                    disabled={busy === "open" || !isConnected}
+                  >
+                    {busy === "open"
+                      ? "Funding escrow…"
+                      : isConnected
+                        ? "Create & fund escrow"
+                        : "Connect wallet to continue"}
                   </button>
                   <button
                     type="button"
@@ -394,8 +418,8 @@ export default function Home() {
       </div>
 
       <footer className="foot">
-        GenLayer adjudication · Arc settlement · orchestrated on Vercel. Mock
-        mode is simulated — see the README to wire real chains.
+        GenLayer adjudication · Arc settlement · wallets via wagmi/viem. Mock
+        settlement is simulated — see the README to wire real chains.
       </footer>
     </div>
   );

@@ -5,6 +5,7 @@ An AI-agent starter that splits responsibilities the way the two protocols are d
 - **GenLayer** is the **brain** — Intelligent Contracts (Python) reach AI-validator consensus on questions that need *judgment*: "does this deliverable meet the spec?"
 - **Arc** is the **rails** — USDC escrow, settlement, and platform fees (the agentic-economy / App-Kit layer).
 - **Vercel** hosts the **UI + orchestrator** that ties the two chains together.
+- **Wallets are real** — connect Rabby, MetaMask, Coinbase Wallet, or any EIP-6963 / WalletConnect wallet (via `wagmi` + `viem`); the connected address is the job's client.
 
 The flagship use case shipped here is **freelance escrow with AI adjudication**, but the structure (orchestrator + adapters + one Intelligent Contract) is reusable for bounties, insurance claims, content rewards, compliance gating, and more.
 
@@ -34,7 +35,12 @@ app/
     escrow/open/route.ts# Arc: fund escrow
     adjudicate/route.ts # GenLayer: verdict
     settle/route.ts     # Arc: release / refund
+  providers.tsx         # wagmi + react-query providers (client)
+components/
+  Header.tsx            # brand + Connect Wallet button
+  ConnectWallet.tsx     # wallet modal (Rabby / MetaMask / Coinbase / WalletConnect)
 lib/
+  wagmi.ts              # chains + connectors config
   genlayer.ts           # adjudicator adapter (mock heuristic + live genlayer-js)
   arc.ts                # settlement adapter (mock + live App-Kit stub)
   config.ts, types.ts
@@ -42,6 +48,26 @@ contracts/
   escrow_adjudicator.py # the GenLayer Intelligent Contract
 tests/direct/           # fast in-memory contract tests
 ```
+
+---
+
+## Wallet connection
+
+Built on **wagmi v2 + viem v2**. The connect modal auto-detects wallets:
+
+- **Rabby, MetaMask, Brave** and other browser wallets via EIP-6963 discovery — no config.
+- **Coinbase Wallet** (extension + mobile) — no config.
+- **WalletConnect** (QR + mobile wallets) — only appears when you set a project id.
+
+Everything works with **zero setup**. To enable WalletConnect, grab a free project id from [cloud.reown.com](https://cloud.reown.com) and set it (these vars are public — safe in the client bundle):
+
+| Variable | Purpose | Default |
+| --- | --- | --- |
+| `NEXT_PUBLIC_WC_PROJECT_ID` | Enables the WalletConnect option | _(off)_ |
+| `NEXT_PUBLIC_DEFAULT_CHAIN_ID` | Chain for the "switch network" button | `8453` (Base) |
+| `NEXT_PUBLIC_APP_NAME` | Name shown in wallet prompts | `GenLayer x Arc Agent Kit` |
+
+Supported chains are configured in [`lib/wagmi.ts`](lib/wagmi.ts) (Base, Arbitrum, Optimism, Polygon, mainnet + Base Sepolia / Sepolia testnets) — edit that list to taste.
 
 ---
 
