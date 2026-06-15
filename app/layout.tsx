@@ -3,9 +3,9 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "GenLayer Agent Studio",
+  title: "Orion — AI agents on GenLayer",
   description:
-    "Build and manage AI agents. GenLayer powers their decisions; approved actions run on testnet.",
+    "Orion: build and manage AI agents whose decisions run on GenLayer and whose approved actions execute on testnet.",
 };
 
 export default function RootLayout({

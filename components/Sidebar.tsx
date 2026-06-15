@@ -21,7 +21,7 @@ export function Sidebar({
   return (
     <aside className="sidebar">
       <div className="side-brand">
-        <span className="brand-mark">◑</span> Agent Studio
+        <span className="brand-mark">◑</span> Orion
       </div>
 
       <nav className="side-nav">

@@ -3,9 +3,9 @@ import Link from "next/link";
 import { LogoMark } from "@/components/Logo";
 
 export const metadata: Metadata = {
-  title: "About · GenLayer Agent Studio",
+  title: "About · Orion",
   description:
-    "What GenLayer Agent Studio is, how it works, and our mission: AI agents whose decisions are verifiable and whose on-chain actions are safe.",
+    "What Orion is, how it works, and our mission: AI agents whose decisions are verifiable and whose on-chain actions are safe.",
 };
 
 const STEPS = [
@@ -61,7 +61,7 @@ export default function AboutPage() {
         <span className="about-brand">
           <LogoMark size={30} />
           <span>
-            Agent Studio <span className="about-brand-tag">· GenLayer</span>
+            Orion <span className="about-brand-tag">· GenLayer</span>
           </span>
         </span>
         <Link href="/" className="btn-primary">
@@ -72,7 +72,7 @@ export default function AboutPage() {
       <header className="about-hero">
         <h1>Build AI agents you can actually trust.</h1>
         <p className="lead">
-          GenLayer Agent Studio lets anyone create autonomous AI agents whose
+          Orion lets anyone create autonomous AI agents whose
           decisions are <strong>verifiable</strong> and whose on-chain actions
           are <strong>safe</strong>. You write the rules; GenLayer reaches
           consensus on every decision; approved actions run on a testnet.
@@ -89,7 +89,7 @@ export default function AboutPage() {
           be inspectable, their decisions should come from{" "}
           <strong>consensus rather than one opaque call</strong>, and their
           authority on-chain should be <strong>narrow and bounded</strong>.
-          Agent Studio is a hands-on place to build agents that way — and to
+          Orion is a hands-on place to build agents that way — and to
           show that trustworthy autonomy is practical, not hypothetical.
         </p>
       </section>
@@ -166,7 +166,7 @@ export default function AboutPage() {
       </section>
 
       <footer className="about-foot">
-        GenLayer Agent Studio · verifiable AI decisions · testnet execution.
+        Orion · verifiable AI decisions · testnet execution.
         Mock mode is simulated — see the README to wire real chains.
       </footer>
     </div>

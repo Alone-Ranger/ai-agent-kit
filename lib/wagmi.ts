@@ -16,7 +16,7 @@ import {
 export { chains, defaultChain, chainName, explorerTx } from "./chains";
 
 const wcProjectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID;
-const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "GenLayer Agent Studio";
+const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "Orion";
 
 export const wagmiConfig = createConfig({
   chains: [baseSepolia, arbitrumSepolia, optimismSepolia, polygonAmoy, sepolia],

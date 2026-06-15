@@ -28,7 +28,7 @@ export async function signIn(
   const message =
     `${domain} wants you to sign in with your Ethereum account:\n` +
     `${address}\n\n` +
-    `Sign in to GenLayer Agent Studio to sync your agents across devices.\n\n` +
+    `Sign in to Orion to sync your agents across devices.\n\n` +
     `URI: ${origin}\n` +
     `Version: 1\n` +
     `Chain ID: ${chainId}\n` +

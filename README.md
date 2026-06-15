@@ -1,4 +1,4 @@
-# GenLayer Agent Studio
+# Orion — AI agents on GenLayer
 
 Build, customize, and manage **AI agents** from an elegant dashboard. Each agent's decisions are powered by **GenLayer** (AI-validator consensus, not a single opaque API call), and when an agent approves an action it **executes on a testnet** through your connected wallet.
 
