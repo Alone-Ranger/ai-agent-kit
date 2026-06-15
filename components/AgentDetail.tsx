@@ -9,7 +9,7 @@ import {
   useWriteContract,
 } from "wagmi";
 import { stringToHex, keccak256 } from "viem";
-import type { Agent, AgentRun, AgentTx } from "@/lib/types";
+import type { Agent, AgentRun, AgentTx, AgentDecision } from "@/lib/types";
 import { templateById } from "@/lib/templates";
 import { chainName, explorerTx, faucetUrl } from "@/lib/chains";
 import { agentActionsAbi, agentActionsAddress } from "@/lib/agent-actions";
@@ -20,6 +20,7 @@ import {
   getAgentAddress,
 } from "@/lib/agent-wallet";
 import { DecisionBadge } from "./agent-ui";
+import { genlayerUserMode, decideViaUserWallet } from "@/lib/genlayer-client";
 
 export function AgentDetail({
   agent,
@@ -86,20 +87,43 @@ export function AgentDetail({
     setBusy(true);
     const runId = crypto.randomUUID();
     try {
-      const res = await fetch("/api/agents/respond", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const userMode = genlayerUserMode();
+      let response: string;
+      let decision: AgentDecision;
+      let source: "genlayer" | "mock";
+      if (userMode && isConnected && address) {
+        // Per-user mode: the user signs their own decide() tx on GenLayer testnet.
+        const r = await decideViaUserWallet({
+          contract: userMode.contract,
+          chain: userMode.chain,
+          address: address as `0x${string}`,
           agentId: agent.id,
           runId,
           instructions: agent.instructions,
           input,
           action: agent.action,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Agent run failed.");
-      const { response, decision, source } = data;
+        });
+        response = r.response;
+        decision = r.decision;
+        source = r.source;
+      } else {
+        const res = await fetch("/api/agents/respond", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            agentId: agent.id,
+            runId,
+            instructions: agent.instructions,
+            input,
+            action: agent.action,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "Agent run failed.");
+        response = data.response;
+        decision = data.decision;
+        source = data.source;
+      }
 
       let tx: AgentTx | undefined;
       if (decision.approved && needsTx) {
@@ -288,6 +312,12 @@ export function AgentDetail({
                 ? " It calls the AgentActions log contract."
                 : ""}
               {live && !auto && !isConnected && " Connect a wallet first."}
+            </div>
+          )}
+          {genlayerUserMode() && (
+            <div className="tx-hint">
+              Each run is a transaction you sign on GenLayer testnet.
+              {!isConnected && " Connect a wallet to sign."}
             </div>
           )}
           <div className="btn-row">
