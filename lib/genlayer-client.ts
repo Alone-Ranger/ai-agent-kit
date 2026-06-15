@@ -1,14 +1,19 @@
 "use client";
 
+import { keccak256 } from "viem";
 import type { ActionKind } from "./types";
 import type { AgentRunResult } from "./genlayer";
 
 // ============================================================
-//  Per-user GenLayer signing.
-//  When NEXT_PUBLIC_GENLAYER_CONTRACT is set, each agent run is
-//  a transaction the USER signs with their own wallet on the
-//  GenLayer testnet (provider: window.ethereum) — one tx per
-//  run, per user. genlayer-js is loaded lazily in the browser.
+//  Per-user GenLayer signing — wallet-agnostic (Rabby too).
+//
+//  GenLayer's MetaMask flow signs through a MetaMask *Snap*
+//  (wallet_getSnaps), which Rabby/Coinbase/Brave don't support.
+//  Instead we derive a per-wallet GenLayer signing key from a
+//  single personal_sign (works in EVERY wallet), then sign
+//  decide() transactions locally with genlayer-js. Each run is
+//  still one GenLayer transaction from the user's own (derived)
+//  account — per user, per run.
 // ============================================================
 
 export function genlayerUserMode(): {
@@ -22,24 +27,28 @@ export function genlayerUserMode(): {
     : null;
 }
 
-// GenLayer signs through a MetaMask Snap, so it needs MetaMask's provider
-// specifically — Rabby / Coinbase / Brave don't implement wallet_getSnaps.
-function getMetaMaskProvider(): any {
-  if (typeof window === "undefined") return null;
-  const eth = (window as unknown as { ethereum?: any }).ethereum;
-  if (!eth) return null;
-  const isRealMetaMask = (p: any) =>
-    p &&
-    p.isMetaMask &&
-    !p.isRabby &&
-    !p.isBraveWallet &&
-    !p.isCoinbaseWallet &&
-    !p.isPhantom;
-  if (Array.isArray(eth.providers)) {
-    const mm = eth.providers.find(isRealMetaMask);
-    if (mm) return mm;
+const KEY_CACHE = (addr: string) => `orion:gl-signer:${addr.toLowerCase()}`;
+
+// Derive (once per session) a GenLayer signing key bound to the user's wallet.
+async function deriveSignerKey(
+  address: string,
+  signMessage: (args: { message: string }) => Promise<string>,
+): Promise<`0x${string}`> {
+  if (typeof window !== "undefined") {
+    const cached = window.sessionStorage.getItem(KEY_CACHE(address));
+    if (cached) return cached as `0x${string}`;
   }
-  return isRealMetaMask(eth) ? eth : null;
+  const message =
+    "Orion — authorize a GenLayer signing key for this session.\n\n" +
+    "Signing derives a key your agent runs use to submit GenLayer " +
+    "transactions. It does not move funds. Only sign this on Orion.\n\n" +
+    `Wallet: ${address}`;
+  const signature = await signMessage({ message });
+  const key = keccak256(signature as `0x${string}`);
+  if (typeof window !== "undefined") {
+    window.sessionStorage.setItem(KEY_CACHE(address), key);
+  }
+  return key;
 }
 
 export async function decideViaUserWallet(params: {
@@ -51,32 +60,19 @@ export async function decideViaUserWallet(params: {
   instructions: string;
   input: string;
   action: ActionKind;
+  signMessage: (args: { message: string }) => Promise<string>;
 }): Promise<AgentRunResult> {
-  const eth = getMetaMaskProvider();
-  if (!eth) {
-    throw new Error(
-      "GenLayer signing requires MetaMask (it signs through a MetaMask Snap). " +
-        "The connected wallet (e.g. Rabby) doesn't support Snaps — connect MetaMask and retry.",
-    );
-  }
-
   const gljs = (await import("genlayer-js")) as any;
   const chainsMod = (await import("genlayer-js/chains")) as any;
   const chain = chainsMod[params.chain];
   if (!chain) throw new Error(`Unknown GenLayer chain: ${params.chain}`);
 
-  // Write client signed by the user's wallet — this is the per-user transaction.
-  const writeClient = gljs.createClient({
-    chain,
-    account: params.address,
-    provider: eth,
-  });
-  // Ensure the wallet is on the GenLayer network before signing.
-  if (typeof writeClient.connect === "function") {
-    await writeClient.connect(params.chain);
-  }
+  const key = await deriveSignerKey(params.address, params.signMessage);
+  const account = gljs.createAccount(key);
+  const client = gljs.createClient({ chain, account });
 
-  const txHash = await writeClient.writeContract({
+  // Each run = one GenLayer transaction from the user's derived account.
+  const txHash = await client.writeContract({
     address: params.contract,
     functionName: "decide",
     args: [
@@ -91,8 +87,8 @@ export async function decideViaUserWallet(params: {
 
   try {
     const typesMod = (await import("genlayer-js/types")) as any;
-    if (typeof writeClient.waitForTransactionReceipt === "function") {
-      await writeClient.waitForTransactionReceipt({
+    if (typeof client.waitForTransactionReceipt === "function") {
+      await client.waitForTransactionReceipt({
         hash: txHash,
         status: typesMod?.TransactionStatus?.ACCEPTED,
       });
@@ -101,10 +97,8 @@ export async function decideViaUserWallet(params: {
     // Fall through to polling the view method below.
   }
 
-  // Read client (no wallet) to poll the finalized verdict.
-  const readClient = gljs.createClient({ chain });
   for (let i = 0; i < 30; i++) {
-    const raw: string = await readClient.readContract({
+    const raw: string = await client.readContract({
       address: params.contract,
       functionName: "get_response",
       args: [params.runId],

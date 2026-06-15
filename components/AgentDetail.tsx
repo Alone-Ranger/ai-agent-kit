@@ -7,6 +7,7 @@ import {
   useSendTransaction,
   useSwitchChain,
   useWriteContract,
+  useSignMessage,
 } from "wagmi";
 import { stringToHex, keccak256 } from "viem";
 import type { Agent, AgentRun, AgentTx, AgentDecision } from "@/lib/types";
@@ -50,6 +51,7 @@ export function AgentDetail({
   const { sendTransactionAsync } = useSendTransaction();
   const { switchChainAsync } = useSwitchChain();
   const { writeContractAsync } = useWriteContract();
+  const { signMessageAsync } = useSignMessage();
 
   const needsTx = agent.action !== "none";
   const live = txMode === "live";
@@ -102,6 +104,7 @@ export function AgentDetail({
           instructions: agent.instructions,
           input,
           action: agent.action,
+          signMessage: (args) => signMessageAsync({ message: args.message }),
         });
         response = r.response;
         decision = r.decision;
@@ -323,8 +326,9 @@ export function AgentDetail({
           )}
           {genlayerUserMode() && (
             <div className="tx-hint">
-              Each run is a transaction you sign on GenLayer testnet.
-              {!isConnected && " Connect a wallet to sign."}
+              Each run submits a transaction on GenLayer testnet — sign once per
+              session to authorize (works with any wallet, incl. Rabby).
+              {!isConnected && " Connect a wallet first."}
             </div>
           )}
           <div className="btn-row">
