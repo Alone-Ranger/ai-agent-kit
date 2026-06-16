@@ -27,9 +27,9 @@ export function genlayerUserMode(): {
     : null;
 }
 
-const GL_EXPLORERS: Record<string, string> = {
-  studionet: "https://explorer-studio.genlayer.com",
-};
+// GenLayer block explorer base for tx links. Override per-deployment with
+// NEXT_PUBLIC_GENLAYER_EXPLORER if you use a different explorer.
+const DEFAULT_GL_EXPLORER = "https://genlayer-explorer.vercel.app";
 
 const KEY_CACHE = (addr: string) => `orion:gl-signer:${addr.toLowerCase()}`;
 
@@ -90,8 +90,8 @@ export async function decideViaUserWallet(params: {
   });
 
   const explorerBase =
-    chain?.blockExplorers?.default?.url ?? GL_EXPLORERS[params.chain] ?? "";
-  const explorerUrl = explorerBase ? `${explorerBase}/tx/${txHash}` : "";
+    process.env.NEXT_PUBLIC_GENLAYER_EXPLORER || DEFAULT_GL_EXPLORER;
+  const explorerUrl = `${explorerBase}/tx/${txHash}`;
 
   try {
     const typesMod = (await import("genlayer-js/types")) as any;
