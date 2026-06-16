@@ -29,7 +29,7 @@ export function genlayerUserMode(): {
 
 // GenLayer block explorer base for tx links. Override per-deployment with
 // NEXT_PUBLIC_GENLAYER_EXPLORER if you use a different explorer.
-const DEFAULT_GL_EXPLORER = "https://genlayer-explorer.vercel.app";
+const DEFAULT_GL_EXPLORER = "https://explorer-studio.genlayer.com";
 
 const KEY_CACHE = (addr: string) => `orion:gl-signer:${addr.toLowerCase()}`;
 

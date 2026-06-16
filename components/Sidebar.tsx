@@ -36,6 +36,14 @@ export function Sidebar({
             {it.badge != null && <span className="side-badge">{it.badge}</span>}
           </button>
         ))}
+        <a className="side-link" href="/about">
+          <span className="ic">◷</span>
+          <span>About</span>
+        </a>
+        <a className="side-link" href="/docs">
+          <span className="ic">▤</span>
+          <span>Docs</span>
+        </a>
         <a
           className="side-link"
           href="https://docs.genlayer.com"
